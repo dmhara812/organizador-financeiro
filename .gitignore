@@ -1,0 +1,30 @@
+# Ambientes e variáveis sensíveis
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Alembic / logs locais
+*.log
+
+# Node / frontend futuro
+node_modules/
+dist/
+build/
+.vite/
+
+# Sistema operacional / editor
+.DS_Store
+.idea/
+.vscode/
