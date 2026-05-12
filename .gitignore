@@ -3,20 +3,24 @@
 .env.*
 !.env.example
 
+# Ambientes virtuais Python.
+.venv/
+venv/
+
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.venv/
-venv/
 .pytest_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 
-# Alembic / logs locais
+# Logs e arquivos temporários locais.
 *.log
+*.tmp
+*.bak
 
 # Node / frontend futuro
 node_modules/
