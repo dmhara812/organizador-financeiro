@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     """
 
     app_name: str = "Finance Investment Organizer API"
+    app_version: str = "0.1.0"
     environment: str = "local"
     debug: bool = True
     api_v1_prefix: str = "/api/v1"

@@ -5,7 +5,13 @@ from app.schemas.asset_price import (
     AssetPriceRead,
     AssetPriceUpdate,
 )
-from app.schemas.base import AppBaseModel, BaseReadSchema, IDSchema, TimestampSchema
+from app.schemas.base import (
+    AppBaseModel,
+    BaseReadSchema,
+    BaseSchema,
+    IDSchema,
+    TimestampSchema,
+)
 from app.schemas.brokerage import (
     BrokerageBase,
     BrokerageCreate,
@@ -54,6 +60,7 @@ __all__ = [
     "AssetType",
     "AssetUpdate",
     "BaseReadSchema",
+    "BaseSchema",
     "BrokerageBase",
     "BrokerageCreate",
     "BrokerageFilters",

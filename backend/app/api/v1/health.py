@@ -1,45 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.exceptions import DatabaseUnavailableError
+from app.schemas.base import MessageResponse
 
-router = APIRouter(prefix="/health", tags=["health"])
+router = APIRouter()
 
 
-@router.get("", summary="Verifica se a API está online")
-def health_check() -> dict[str, str]:
-    """Retorna o estado básico da aplicação.
+@router.get(
+    "/health",
+    response_model=MessageResponse,
+    summary="Verifica se a API está online",
+)
+def health_check() -> MessageResponse:
+    """Retorna um status simples da API.
 
-    Este endpoint não consulta o banco, então ele ajuda a diferenciar problemas
-    da aplicação HTTP de problemas específicos de infraestrutura do PostgreSQL.
+    Este endpoint não consulta o banco porque ele serve para verificar se a
+    aplicação FastAPI subiu corretamente. A checagem do PostgreSQL fica em uma
+    rota separada para facilitar diagnóstico quando a API está online, mas o
+    banco está indisponível.
     """
 
-    settings = get_settings()
-    return {
-        "status": "ok",
-        "service": settings.app_name,
-        "environment": settings.environment,
-    }
+    return MessageResponse(message="API is running")
 
 
-@router.get("/db", summary="Verifica se a API consegue acessar o banco")
-def database_health_check(db: Session = Depends(get_db)) -> dict[str, str]:
-    """Executa uma consulta simples para validar a conexão com PostgreSQL.
+@router.get(
+    "/health/db",
+    response_model=MessageResponse,
+    summary="Verifica se a API consegue acessar o banco de dados",
+)
+def database_health_check(db: Session = Depends(get_db)) -> MessageResponse:
+    """Executa uma consulta mínima para validar a conexão com o PostgreSQL.
 
-    A resposta não expõe detalhes internos da exceção para evitar vazamento de
-    informações sensíveis, como host, usuário ou string de conexão. Os detalhes
-    completos devem ser observados nos logs do container durante desenvolvimento.
+    Usar `SELECT 1` evita depender de tabelas específicas. Isso é útil porque o
+    endpoint continua funcionando mesmo antes de aplicar todas as migrations.
     """
 
     try:
         db.execute(text("SELECT 1"))
     except SQLAlchemyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Banco de dados indisponível no momento.",
+        raise DatabaseUnavailableError(
+            message="Não foi possível conectar ao banco de dados."
         ) from exc
 
-    return {"status": "ok", "database": "reachable"}
+    return MessageResponse(message="Database connection is healthy")

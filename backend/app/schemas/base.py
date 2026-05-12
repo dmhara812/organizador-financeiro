@@ -19,31 +19,33 @@ class AppBaseModel(BaseModel):
     )
 
 
-class IDSchema(AppBaseModel):
-    """Contrato reutilizável para entidades expostas pela API com UUID.
+class BaseSchema(AppBaseModel):
+    """Alias de compatibilidade para etapas que importam BaseSchema."""
 
-    O projeto usa UUID nos models para não expor sequências internas do banco.
-    Manter esse schema separado facilita compor respostas de leitura.
-    """
+
+class IDSchema(AppBaseModel):
+    """Contrato reutilizável para entidades expostas pela API com UUID."""
 
     id: UUID
 
 
 class TimestampSchema(AppBaseModel):
-    """Contrato reutilizável para campos de auditoria básica.
-
-    Os timestamps vêm dos mixins SQLAlchemy. Expor esses campos nas respostas
-    ajuda o frontend e também melhora a rastreabilidade em ambiente de portfólio.
-    """
+    """Contrato reutilizável para campos de auditoria básica."""
 
     created_at: datetime
     updated_at: datetime
 
 
 class BaseReadSchema(IDSchema, TimestampSchema):
-    """Base para schemas de leitura de entidades persistidas.
+    """Base para schemas de leitura de entidades persistidas."""
 
-    As próximas etapas poderão herdar desta classe em respostas como
-    `AssetRead`, `CategoryRead` e `TransactionRead`, evitando repetição de
-    `id`, `created_at` e `updated_at`.
+
+class MessageResponse(BaseModel):
+    """Resposta simples para endpoints que só precisam retornar uma mensagem.
+
+    Usamos um schema próprio, em vez de retornar `dict` diretamente, para manter
+    o contrato da API explícito no Swagger/OpenAPI e facilitar o consumo pelo
+    frontend.
     """
+
+    message: str
