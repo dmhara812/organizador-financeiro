@@ -84,7 +84,7 @@ class AssetRepository(BaseRepository[Asset]):
         """Lista ativos de um usuário com filtros e paginação.
 
         A query ainda não calcula posição ou valor de mercado. Esses cálculos
-        dependem de movimentações e preços e serão implementados nos services.
+        dependem de movimentações e preços e são feitos no `PortfolioService`.
         """
 
         stmt = select(Asset).where(Asset.user_id == user_id)
@@ -96,7 +96,7 @@ class AssetRepository(BaseRepository[Asset]):
             stmt = stmt.where(Asset.category_id == category_id)
 
         if is_active is not None:
-            stmt = stmt.where(Asset.is_active == is_active)
+            stmt = stmt.where(Asset.is_active.is_(is_active))
 
         normalized_search = self._normalize_search(search)
         if normalized_search:
@@ -143,6 +143,23 @@ class AssetRepository(BaseRepository[Asset]):
                 Asset.is_active.is_(True),
             )
             .order_by(Asset.symbol.asc())
+        )
+
+        return list(self.db.execute(stmt).scalars().all())
+
+    def list_all_by_user(self, user_id: UUID) -> list[Asset]:
+        """Lista todos os ativos do usuário para cálculos internos.
+
+        O dashboard precisa considerar ativos inativos caso eles ainda tenham
+        posição ou histórico. Por isso, este método não filtra por `is_active`.
+        Ele deve ser usado em services de cálculo, não em listagens públicas sem
+        paginação.
+        """
+
+        stmt = (
+            select(Asset)
+            .where(Asset.user_id == user_id)
+            .order_by(Asset.symbol.asc(), Asset.name.asc())
         )
 
         return list(self.db.execute(stmt).scalars().all())

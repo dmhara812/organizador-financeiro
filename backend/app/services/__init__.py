@@ -3,6 +3,13 @@ from app.services.asset_service import AssetService
 from app.services.base import BaseService
 from app.services.brokerage_service import BrokerageService
 from app.services.category_service import CategoryService
+from app.services.portfolio_service import (
+    AssetPosition,
+    PortfolioAllocation,
+    PortfolioCashFlowSummary,
+    PortfolioService,
+    PortfolioSummary,
+)
 from app.services.transaction_manager import TransactionManager
 from app.services.transaction_service import TransactionService
 from app.services.user_service import UserService
@@ -11,11 +18,16 @@ from app.services.user_service import UserService
 # Mantenha esta lista sincronizada com os imports acima para evitar erros do
 # Ruff como F821 Undefined name.
 __all__ = [
+    "AssetPosition",
     "AssetPriceService",
     "AssetService",
     "BaseService",
     "BrokerageService",
     "CategoryService",
+    "PortfolioAllocation",
+    "PortfolioCashFlowSummary",
+    "PortfolioService",
+    "PortfolioSummary",
     "TransactionManager",
     "TransactionService",
     "UserService",

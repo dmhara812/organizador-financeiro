@@ -119,6 +119,74 @@ class TransactionRepository(BaseRepository[Transaction]):
 
         return list(self.db.execute(stmt).scalars().all())
 
+    def list_asset_transactions_for_position(
+        self,
+        user_id: UUID,
+        *,
+        asset_id: UUID | None = None,
+        occurred_to: datetime | None = None,
+    ) -> list[Transaction]:
+        """Lista movimentações que afetam posição de ativos.
+
+        A ordenação cronológica é essencial para calcular custo médio. Usamos
+        `created_at` como desempate para manter resultado estável quando duas
+        movimentações tiverem o mesmo `occurred_at`.
+        """
+
+        position_types = (
+            TransactionType.BUY,
+            TransactionType.SELL,
+            TransactionType.TRANSFER_IN,
+            TransactionType.TRANSFER_OUT,
+        )
+
+        stmt = select(Transaction).where(
+            Transaction.user_id == user_id,
+            Transaction.asset_id.is_not(None),
+            Transaction.transaction_type.in_(position_types),
+        )
+
+        if asset_id is not None:
+            stmt = stmt.where(Transaction.asset_id == asset_id)
+
+        if occurred_to is not None:
+            stmt = stmt.where(Transaction.occurred_at <= occurred_to)
+
+        stmt = stmt.order_by(
+            Transaction.asset_id.asc(),
+            Transaction.occurred_at.asc(),
+            Transaction.created_at.asc(),
+        )
+
+        return list(self.db.execute(stmt).scalars().all())
+
+    def list_by_user_for_summary(
+        self,
+        user_id: UUID,
+        *,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
+    ) -> list[Transaction]:
+        """Lista movimentações para cálculo de resumo financeiro.
+
+        Diferente de `list_by_user`, este método não pagina porque será usado
+        internamente pelo service de dashboard para somar fluxos de um período.
+        """
+
+        stmt = select(Transaction).where(Transaction.user_id == user_id)
+
+        if occurred_from is not None:
+            stmt = stmt.where(Transaction.occurred_at >= occurred_from)
+
+        if occurred_to is not None:
+            stmt = stmt.where(Transaction.occurred_at <= occurred_to)
+
+        stmt = stmt.order_by(
+            Transaction.occurred_at.asc(), Transaction.created_at.asc()
+        )
+
+        return list(self.db.execute(stmt).scalars().all())
+
     def get_by_external_reference(
         self,
         user_id: UUID,
