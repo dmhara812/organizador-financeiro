@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
 
+    # A chave secreta assina os tokens JWT. Ela deve existir no `.env` local e
+    # nunca deve ser commitada no GitHub. Exigir tamanho mínimo reduz o risco de
+    # usar uma chave fraca por acidente.
+    secret_key: str = Field(min_length=32)
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = Field(default=60, gt=0)
+
     backend_cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173"]
     )

@@ -1,4 +1,5 @@
 from app.schemas.asset import AssetBase, AssetCreate, AssetRead, AssetUpdate
+from app.schemas.auth import TokenPayload, TokenResponse
 from app.schemas.asset_price import (
     AssetPriceBase,
     AssetPriceCreate,
@@ -89,4 +90,6 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "TokenPayload",
+    "TokenResponse",
 ]
