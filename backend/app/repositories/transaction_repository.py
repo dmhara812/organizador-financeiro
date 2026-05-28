@@ -125,12 +125,18 @@ class TransactionRepository(BaseRepository[Transaction]):
         *,
         asset_id: UUID | None = None,
         occurred_to: datetime | None = None,
+        exclude_transaction_id: UUID | None = None,
     ) -> list[Transaction]:
         """Lista movimentações que afetam posição de ativos.
 
         A ordenação cronológica é essencial para calcular custo médio. Usamos
         `created_at` como desempate para manter resultado estável quando duas
         movimentações tiverem o mesmo `occurred_at`.
+
+        `exclude_transaction_id` é usado durante updates. Ao editar uma venda,
+        precisamos calcular a posição como se aquela venda ainda não existisse,
+        evitando que a própria movimentação reduza a disponibilidade usada na
+        validação.
         """
 
         position_types = (
@@ -151,6 +157,9 @@ class TransactionRepository(BaseRepository[Transaction]):
 
         if occurred_to is not None:
             stmt = stmt.where(Transaction.occurred_at <= occurred_to)
+
+        if exclude_transaction_id is not None:
+            stmt = stmt.where(Transaction.id != exclude_transaction_id)
 
         stmt = stmt.order_by(
             Transaction.asset_id.asc(),

@@ -126,18 +126,20 @@ class PortfolioService(BaseService):
         user_id: UUID,
         asset_id: UUID,
         occurred_to: datetime | None = None,
+        exclude_transaction_id: UUID | None = None,
     ) -> Decimal:
         """Calcula a quantidade disponível de um ativo.
 
-        Este método será útil depois para impedir vendas maiores do que a
-        posição disponível. Ele ainda não é chamado pelo `TransactionService`
-        para manter esta etapa focada apenas no cálculo.
+        `exclude_transaction_id` permite validar atualização de movimentações.
+        Sem esse parâmetro, uma venda em edição seria considerada no próprio
+        cálculo de disponibilidade, podendo gerar falso bloqueio.
         """
 
         transactions = self.transaction_repository.list_asset_transactions_for_position(
             user_id=user_id,
             asset_id=asset_id,
             occurred_to=occurred_to,
+            exclude_transaction_id=exclude_transaction_id,
         )
         state = self._calculate_position_state(transactions)
         return state.quantity
