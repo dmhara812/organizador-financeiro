@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from fastapi import status
-
 from enum import StrEnum
+
+from fastapi import status
 
 
 class ErrorCode(StrEnum):
@@ -87,3 +87,43 @@ class DatabaseUnavailableError(AppException):
 
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     error_code = "DATABASE_UNAVAILABLE"
+
+
+class ResourceNotFoundError(AppException):
+    """Erro usado quando um recurso não foi encontrado.
+
+    Esse nome é usado pelos services para deixar claro que a falha aconteceu
+    ao buscar uma entidade do domínio, como ativo, categoria, corretora ou usuário.
+    """
+
+    def __init__(
+        self,
+        message: str = "Recurso não encontrado.",
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code=ErrorCode.NOT_FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
+            details=details,
+        )
+
+
+class ValidationAppError(AppException):
+    """Erro usado quando uma regra de validação da aplicação é violada.
+
+    Esse erro representa falhas de regra de negócio, como tentar vender mais
+    ativos do que o usuário possui ou criar registros duplicados.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code=ErrorCode.VALIDATION_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=details,
+        )

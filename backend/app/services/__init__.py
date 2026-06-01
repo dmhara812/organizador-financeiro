@@ -1,5 +1,6 @@
 from app.services.asset_price_service import AssetPriceService
 from app.services.asset_service import AssetService
+from app.services.auth_service import AuthService
 from app.services.base import BaseService
 from app.services.brokerage_service import BrokerageService
 from app.services.category_service import CategoryService
@@ -21,6 +22,7 @@ __all__ = [
     "AssetPosition",
     "AssetPriceService",
     "AssetService",
+    "AuthService",
     "BaseService",
     "BrokerageService",
     "CategoryService",
