@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.exceptions import AuthenticationError, ForbiddenError
+from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterResponse, TokenResponse
@@ -64,7 +64,7 @@ class AuthService(BaseService):
             raise AuthenticationError(message="E-mail ou senha inválidos.")
 
         if not user.is_active:
-            raise ForbiddenError(message="Usuário inativo.")
+            raise AuthorizationError(message="Usuário inativo.")
 
         return user
 

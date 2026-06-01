@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, ForbiddenError
+from app.core.exceptions import ConflictError, AuthorizationError
 from app.models.user import User
 from app.repositories import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
@@ -42,7 +42,7 @@ class UserService(BaseService):
 
         user = self.get_user(user_id)
         if not user.is_active:
-            raise ForbiddenError(message="Usuário inativo.")
+            raise AuthorizationError(message="Usuário inativo.")
 
         return user
 
