@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.exceptions import AppException, ErrorCode
+from app.core.exceptions import AppException, ErrorCode, AuthenticationError
 from app.schemas import ErrorDetail, ErrorResponse
 
 
@@ -200,17 +200,83 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Registra todos os handlers globais da aplicação.
+    """Registra handlers globais para padronizar erros da API."""
 
-    Mantemos o registro em uma função para deixar o `main.py` pequeno e legível.
-    Essa organização facilita a evolução para testes, observabilidade e logs
-    estruturados sem espalhar configuração pela aplicação.
-    """
+    @app.exception_handler(AppException)
+    async def app_exception_handler(
+        request: Request,
+        exc: AppException,
+    ) -> JSONResponse:
+        headers = None
 
-    app.add_exception_handler(AppException, app_exception_handler)
-    app.add_exception_handler(
-        RequestValidationError, request_validation_exception_handler
-    )
-    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
-    app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
-    app.add_exception_handler(Exception, unhandled_exception_handler)
+        if isinstance(exc, AuthenticationError):
+            headers = {"WWW-Authenticate": "Bearer"}
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers=headers,
+            content={
+                "message": exc.message,
+                "code": exc.error_code,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "message": "Erro de validação nos dados enviados.",
+                "code": "VALIDATION_ERROR",
+                "details": {"errors": exc.errors()},
+            },
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request,
+        exc: StarletteHTTPException,
+    ) -> JSONResponse:
+        code = "AUTHENTICATION_ERROR" if exc.status_code == 401 else "HTTP_ERROR"
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers=getattr(exc, "headers", None),
+            content={
+                "message": str(exc.detail),
+                "code": code,
+                "details": None,
+            },
+        )
+
+    @app.exception_handler(SQLAlchemyError)
+    async def sqlalchemy_exception_handler(
+        request: Request,
+        exc: SQLAlchemyError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "message": "Banco de dados indisponível.",
+                "code": "DATABASE_UNAVAILABLE",
+                "details": None,
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def unexpected_exception_handler(
+        request: Request,
+        exc: Exception,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "message": "Erro interno inesperado.",
+                "code": "INTERNAL_SERVER_ERROR",
+                "details": None,
+            },
+        )

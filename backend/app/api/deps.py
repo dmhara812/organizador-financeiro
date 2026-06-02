@@ -50,7 +50,7 @@ def get_current_user(token: TokenDep, db: DbSessionDep) -> User:
     if user is None:
         # Falhas de autenticação devem ser genéricas para não revelar se o token
         # apontava para um usuário que já existiu ou não.
-        raise AuthenticationError(message="Credenciais inválidas.")
+        raise AuthenticationError(message="Token inválido ou expirado.")
 
     return user
 
@@ -88,7 +88,7 @@ def _parse_user_id_from_token_subject(subject: str) -> UUID:
     try:
         return UUID(subject)
     except ValueError as exc:
-        raise AuthenticationError(message="Credenciais inválidas.") from exc
+        raise AuthenticationError(message="Token inválido ou expirado.") from exc
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

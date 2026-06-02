@@ -23,24 +23,20 @@ class ErrorCode(StrEnum):
 
 
 class AppException(Exception):
-    """Exceção base da aplicação.
+    """Classe base para erros esperados da aplicação."""
 
-    Concentrar os erros de domínio em uma classe base permite que o handler
-    global transforme falhas esperadas em respostas padronizadas para o frontend.
-    """
-
-    status_code: int = status.HTTP_400_BAD_REQUEST
-    error_code: str = "APP_ERROR"
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    error_code = "APP_ERROR"
+    default_message = "Erro na aplicação."
 
     def __init__(
         self,
-        message: str,
-        *,
+        message: str | None = None,
         details: dict[str, object] | None = None,
     ) -> None:
-        self.message = message
+        self.message = message or self.default_message
         self.details = details
-        super().__init__(message)
+        super().__init__(self.message)
 
 
 class ValidationError(AppException):
