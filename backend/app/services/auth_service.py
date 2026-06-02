@@ -15,9 +15,9 @@ from app.services.user_service import UserService
 class AuthService(BaseService):
     """Service responsável pelos fluxos de autenticação.
 
-    Este service orquestra regras que envolvem senha, usuário ativo e emissão de
-    token. Ele não cria rotas HTTP diretamente; as rotas futuras chamarão estes
-    métodos para manter controllers pequenos e fáceis de testar.
+    O service concentra senha, validação de usuário ativo e emissão de token para
+    manter as rotas HTTP pequenas. Isso evita que controllers conheçam detalhes
+    de hash, JWT ou persistência de usuário.
     """
 
     def __init__(self, db: Session) -> None:
@@ -27,9 +27,9 @@ class AuthService(BaseService):
     def register(self, data: UserCreate) -> RegisterResponse:
         """Registra um usuário e devolve token de acesso.
 
-        A senha pura só existe dentro deste fluxo por tempo suficiente para
-        gerar o hash. O `UserService` recebe apenas `hashed_password`, reduzindo
-        o risco de persistir senha em texto puro por engano.
+        A senha pura só existe durante este método. O `UserService` recebe apenas
+        `hashed_password`, reduzindo o risco de salvar senha em texto puro por
+        engano.
         """
 
         hashed_password = hash_password(data.password)
@@ -39,11 +39,7 @@ class AuthService(BaseService):
         return RegisterResponse(user=user, token=token)
 
     def login(self, data: LoginRequest) -> TokenResponse:
-        """Autentica usuário e devolve token de acesso.
-
-        A validação de credenciais fica separada de `create_token_for_user` para
-        permitir reuso futuro em testes, refresh token ou auditoria de login.
-        """
+        """Autentica usuário e devolve token de acesso."""
 
         user = self.authenticate_user(email=str(data.email), password=data.password)
         return self.create_token_for_user(user)
@@ -51,8 +47,8 @@ class AuthService(BaseService):
     def authenticate_user(self, *, email: str, password: str) -> User:
         """Valida e-mail, senha e status ativo do usuário.
 
-        O erro de e-mail inexistente e senha incorreta é propositalmente o mesmo
-        para não permitir que alguém descubra quais e-mails estão cadastrados.
+        O erro de e-mail inexistente e senha incorreta é o mesmo de propósito.
+        Isso evita enumeração de usuários cadastrados.
         """
 
         user = self.user_service.get_by_email(email.strip().lower())
@@ -71,8 +67,8 @@ class AuthService(BaseService):
     def create_token_for_user(self, user: User) -> TokenResponse:
         """Cria resposta de token para um usuário válido.
 
-        O `sub` do token recebe o UUID do usuário como string. Essa escolha deixa
-        o JWT simples e evita serialização customizada de UUID.
+        O `sub` do JWT recebe o UUID do usuário como string. Essa escolha mantém
+        o payload simples e facilita a validação nas dependências de autenticação.
         """
 
         settings = get_settings()

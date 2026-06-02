@@ -17,11 +17,11 @@ from app.services.auth_service import AuthService
 
 settings = get_settings()
 
-# O tokenUrl aponta para a rota que será criada na Etapa 6.4. Mesmo antes da
-# rota existir, esta configuração já prepara o Swagger/OpenAPI para entender o
-# fluxo Bearer Token das rotas protegidas.
+# `tokenUrl` aponta para a rota form-compatible criada nesta etapa.
+# Isso permite que o Swagger use o fluxo OAuth2 Password para autenticar testes
+# manuais em rotas protegidas.
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.api_v1_prefix}/auth/login",
+    tokenUrl=f"{settings.api_v1_prefix}/auth/token",
 )
 
 DbSessionDep = Annotated[Session, Depends(get_db)]
@@ -31,21 +31,15 @@ TokenDep = Annotated[str, Depends(oauth2_scheme)]
 def get_auth_service(db: DbSessionDep) -> AuthService:
     """Cria o service de autenticação para uso nas rotas.
 
-    Centralizar a criação aqui evita que cada rota precise conhecer detalhes de
-    sessão de banco ou instanciação do service. Isso também facilita testes,
-    porque o FastAPI permite sobrescrever dependências em `app.dependency_overrides`.
+    Centralizar a instanciação em uma dependência facilita testes futuros com
+    `app.dependency_overrides` e mantém as rotas sem detalhes de sessão de banco.
     """
 
     return AuthService(db=db)
 
 
 def get_current_user(token: TokenDep, db: DbSessionDep) -> User:
-    """Retorna o usuário autenticado a partir do token JWT.
-
-    O JWT carrega apenas o `sub`, que representa o ID do usuário. A consulta ao
-    banco é necessária para garantir que o usuário ainda existe e para obter o
-    estado atual da conta, como `is_active`.
-    """
+    """Retorna o usuário autenticado a partir do token JWT."""
 
     token_payload = decode_access_token(token)
     user_id = _parse_user_id_from_token_subject(token_payload.sub)
@@ -54,8 +48,8 @@ def get_current_user(token: TokenDep, db: DbSessionDep) -> User:
     user = user_repository.get_by_id(user_id)
 
     if user is None:
-        # Não retornamos 404 aqui. Para autenticação, a resposta deve ser
-        # genérica, evitando revelar se o token apontava para um usuário real.
+        # Falhas de autenticação devem ser genéricas para não revelar se o token
+        # apontava para um usuário que já existiu ou não.
         raise AuthenticationError(message="Credenciais inválidas.")
 
     return user
@@ -64,12 +58,7 @@ def get_current_user(token: TokenDep, db: DbSessionDep) -> User:
 def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
-    """Retorna o usuário autenticado apenas se a conta estiver ativa.
-
-    Separar esta validação permite que fluxos futuros usem `get_current_user`
-    diretamente quando fizer sentido, mas o padrão das rotas protegidas será
-    exigir usuário ativo.
-    """
+    """Retorna o usuário autenticado apenas se a conta estiver ativa."""
 
     if not current_user.is_active:
         raise AuthorizationError(message="Usuário inativo.")
@@ -82,8 +71,8 @@ def require_current_user_id(
 ) -> UUID:
     """Retorna somente o ID do usuário autenticado e ativo.
 
-    Esse helper será útil em rotas que não precisam do objeto `User` completo,
-    mas precisam aplicar filtros de ownership nos repositories e services.
+    Esse helper será usado em rotas que precisam aplicar ownership, mas não
+    precisam do objeto `User` completo.
     """
 
     return current_user.id
@@ -92,8 +81,8 @@ def require_current_user_id(
 def _parse_user_id_from_token_subject(subject: str) -> UUID:
     """Converte o `sub` do token em UUID.
 
-    Tokens malformados ou criados com `sub` inválido devem falhar como erro de
-    autenticação, não como erro interno da aplicação.
+    Tokens malformados devem falhar como erro de autenticação, não como erro
+    interno da aplicação.
     """
 
     try:
